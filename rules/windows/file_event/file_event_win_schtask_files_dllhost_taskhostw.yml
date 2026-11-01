@@ -1,0 +1,34 @@
+title: Scheduled Task Files Named dllhost or taskhostw Written Outside schtasks.exe
+id: d5ba62a1-5139-47f9-992d-a93cdf3f5fb2
+status: experimental
+description: |
+    Detects creation (or modification) of scheduled task files named "dllhost" or
+    "taskhostw" under C:\Windows\System32\Tasks - names masquerading as the legitimate
+    system binaries dllhost.exe / taskhostw.exe. Observed PavinLoader.BAT persistence
+    dropped such task files. In Sysmon file_event (EID 11) the Image field identifies
+    the process that wrote the file; any writer other than schtasks.exe is suspicious.
+    Note that the Task Scheduler service (svchost.exe) writes task XML natively, so
+    extend the filter if your baseline creates these names through other APIs.
+references:
+    - Verified internal incident report, Trojan.PavinLoader.BAT (Malwarebytes family naming), 2026-10-29
+    - https://attack.mitre.org/techniques/T1053/005/
+author: fotedev
+date: 2026-10-29
+tags:
+    - attack.persistence
+    - attack.privilege-escalation
+    - attack.t1053.005
+logsource:
+    category: file_event
+    product: windows
+detection:
+    selection_target:
+        TargetFilename|endswith:
+            - '\Windows\System32\Tasks\dllhost'
+            - '\Windows\System32\Tasks\taskhostw'
+    filter_schtasks:
+        Image|endswith: '\schtasks.exe'
+    condition: selection_target and not filter_schtasks
+falsepositives:
+    - Administrative tooling or configuration management that registers tasks with these exact names through APIs other than schtasks.exe
+level: high
